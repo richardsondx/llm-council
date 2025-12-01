@@ -1,4 +1,4 @@
-# LLM Council
+# LLM Cross-Domain Advisory Board 
 
 ![llmcouncil](header.jpg)
 
@@ -54,7 +54,18 @@ COUNCIL_MODELS = [
     "x-ai/grok-4",
 ]
 
+# Optional: Assign specific roles to each council member
+COUNCIL_ROLES = [
+    "Demography Expert",
+    "Economics Expert",
+    "History Expert",
+    "Technology Expert",
+]
+
 CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
+
+# Optional: Assign a specific role to the chairman
+CHAIRMAN_ROLE = "Synthesizer and Decision Maker"
 ```
 
 ## Running the Application

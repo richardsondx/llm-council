@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, COUNCIL_ROLES, CHAIRMAN_ROLE
 
 
 async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
@@ -17,15 +17,37 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
     """
     messages = [{"role": "user", "content": user_query}]
 
+    # Prepare messages
+    individual_messages = None
+    
+    # Check if we have roles assigned
+    if COUNCIL_ROLES and len(COUNCIL_ROLES) == len(COUNCIL_MODELS):
+        individual_messages = []
+        for role in COUNCIL_ROLES:
+            msgs = []
+            if role:
+                msgs.append({"role": "system", "content": f"You are a {role}. Answer the following question from that perspective."})
+            msgs.append({"role": "user", "content": user_query})
+            individual_messages.append(msgs)
+    
     # Query all models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    if individual_messages:
+        responses = await query_models_parallel(COUNCIL_MODELS, messages, individual_messages=individual_messages)
+    else:
+        responses = await query_models_parallel(COUNCIL_MODELS, messages)
 
     # Format results
     stage1_results = []
-    for model, response in responses.items():
+    for i, (model, response) in enumerate(responses.items()):
         if response is not None:  # Only include successful responses
+            # Get role if available
+            role = None
+            if COUNCIL_ROLES and i < len(COUNCIL_ROLES):
+                role = COUNCIL_ROLES[i]
+                
             stage1_results.append({
                 "model": model,
+                "role": role,
                 "response": response.get('content', '')
             })
 
@@ -156,7 +178,10 @@ Your task as Chairman is to synthesize all of this information into a single, co
 
 Provide a clear, well-reasoned final answer that represents the council's collective wisdom:"""
 
-    messages = [{"role": "user", "content": chairman_prompt}]
+    messages = []
+    if CHAIRMAN_ROLE:
+        messages.append({"role": "system", "content": f"You are the {CHAIRMAN_ROLE}."})
+    messages.append({"role": "user", "content": chairman_prompt})
 
     # Query the chairman model
     response = await query_model(CHAIRMAN_MODEL, messages)
